@@ -1,40 +1,85 @@
-const fileDB = require('./file');
-const recordUtils = require('./record');
+const fs = require('fs');
+const path = require('path');
+require('dotenv').config();
+const Record = require('../models/Record');
 const vaultEvents = require('../events');
 
-function addRecord({ name, value }) {
-  recordUtils.validateRecord({ name, value });
-  const data = fileDB.readDB();
-  const newRecord = { id: recordUtils.generateId(), name, value };
-  data.push(newRecord);
-  fileDB.writeDB(data);
-  vaultEvents.emit('recordAdded', newRecord);
-  return newRecord;
+async function addRecord({ name, value }) {
+  const last = await Record.findOne().sort({ id: -1 });
+  const newId = last ? last.id + 1 : 1;
+  const doc = await Record.create({ id: newId, name, value });
+  vaultEvents.emit('recordAdded', doc);
+  return doc;
 }
 
-function listRecords() {
-  return fileDB.readDB();
+async function listRecords() {
+  return await Record.find().sort({ id: 1 });
 }
 
-function updateRecord(id, newName, newValue) {
-  const data = fileDB.readDB();
-  const record = data.find(r => r.id === id);
-  if (!record) return null;
-  record.name = newName;
-  record.value = newValue;
-  fileDB.writeDB(data);
-  vaultEvents.emit('recordUpdated', record);
-  return record;
+async function updateRecord(id, newName, newValue) {
+  const updated = await Record.findOneAndUpdate(
+    { id },
+    { name: newName, value: newValue },
+    { new: true }
+  );
+  vaultEvents.emit('recordUpdated', updated);
+  return updated;
 }
 
-function deleteRecord(id) {
-  let data = fileDB.readDB();
-  const record = data.find(r => r.id === id);
-  if (!record) return null;
-  data = data.filter(r => r.id !== id);
-  fileDB.writeDB(data);
-  vaultEvents.emit('recordDeleted', record);
-  return record;
+async function deleteRecord(id) {
+  const deleted = await Record.findOneAndDelete({ id });
+  vaultEvents.emit('recordDeleted', deleted);
+  return deleted;
 }
 
-module.exports = { addRecord, listRecords, updateRecord, deleteRecord };
+async function searchRecords(keyword) {
+  const key = new RegExp(keyword, "i");
+  return await Record.find({
+    $or: [
+      { name: key },
+      { value: key },
+      { id: Number(keyword) || -1 }
+    ]
+  });
+}
+
+async function sortRecords(field = 'name', order = 'asc') {
+  return await Record.find().sort({ [field]: order === 'desc' ? -1 : 1 });
+}
+
+async function exportVault(fileName = 'export.txt') {
+  const data = await Record.find().sort({ id: 1 });
+  const filePath = path.join(__dirname, '../data', fileName);
+
+  let content = `Vault Export - ${new Date().toLocaleString()}\n\n`;
+  data.forEach((r, i) => {
+    content += `${i + 1}. ID: ${r.id} | Name: ${r.name} | Value: ${r.value}\n`;
+  });
+
+  fs.writeFileSync(filePath, content);
+  return filePath;
+}
+
+async function vaultStats() {
+  const data = await Record.find();
+  if (data.length === 0) return { message: "Vault is empty" };
+
+  return {
+    totalRecords: data.length,
+    longestNameRecord: data.reduce((a,b)=>a.name.length>b.name.length?a:b),
+    shortestNameRecord: data.reduce((a,b)=>a.name.length<b.name.length?a:b),
+    sample: data.slice(0,3)
+  };
+}
+
+module.exports = {
+  addRecord,
+  listRecords,
+  updateRecord,
+  deleteRecord,
+  searchRecords,
+  sortRecords,
+  exportVault,
+  vaultStats
+};
+
