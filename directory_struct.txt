@@ -1,0 +1,27 @@
+.
+├── data
+│   ├── backups
+│   │   ├── backup_2025-12-04T15-34-30.json
+│   │   ├── backup_2025-12-04T15-34-41.json
+│   │   └── backup_2025-12-04T15-34-49.json
+│   ├── export.txt
+│   └── vault.json
+├── db
+│   ├── file.js
+│   ├── index.js
+│   ├── mongo.js
+│   └── record.js
+├── directory_struct.txt
+├── docker-compose.yml
+├── Dockerfile
+├── events
+│   ├── index.js
+│   └── logger.js
+├── main.js
+├── models
+│   └── Record.js
+├── package.json
+├── package-lock.json
+└── README.md
+
+5 directories, 19 files

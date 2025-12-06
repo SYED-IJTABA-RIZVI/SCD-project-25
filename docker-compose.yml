@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:4.4
+    container_name: mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: pass123
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  app:
+    build: .
+    container_name: nodevault
+    restart: always
+    depends_on:
+      - mongo
+    env_file: .env
+    ports:
+      - "3000:3000"
+    environment:
+      MONGO_URI: mongodb://root:pass123@mongo:27017/nodevault?authSource=admin
+    stdin_open: true       # allow menus
+    tty: true              # keep process interactive
+
+volumes:
+  mongo_data:
+

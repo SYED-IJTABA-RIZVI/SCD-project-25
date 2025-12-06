@@ -9,7 +9,7 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
-async function menu() {
+function menu() {
   console.log(`
 ===== NodeVault =====
 1. Add Record
@@ -116,7 +116,11 @@ Sort by:
       case '9':
         console.log('👋 Exiting...');
         rl.close();
+        const mongoose = require('mongoose');
+        await mongoose.connection.close();
+        process.exit(0);
         break;
+
 
       default:
         console.log('Invalid option');
